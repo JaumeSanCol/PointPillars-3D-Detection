@@ -2,6 +2,7 @@ import os
 import numpy as np
 import torch
 from torch.utils.data import Dataset
+from utils.pillarization import Pillarization
 
 
 class KittiDataset(Dataset):
@@ -13,6 +14,7 @@ class KittiDataset(Dataset):
         self.data_dir = data_dir
         self.split = split
         self.transform = transform
+        self.pillarizer = Pillarization()
         
         # setting up where to find the LiDAR scans and labels
         self.lidar_dir = os.path.join(data_dir, split, 'velodyne')
@@ -41,9 +43,16 @@ class KittiDataset(Dataset):
         # throw in some data augmentation or shape things up with voxelization
         if self.transform:
             points, labels = self.transform(points, labels)
-            
-        return {'points': points, 'labels': labels, 'id': file_id}
+        
+        pillars, pillar_indices, spatial_shape = self.pillarizer(points)
 
+        return {
+            'pillars': pillars,
+            'pillar_indices': pillar_indices,
+            'labels': labels,
+            'id': file_id,
+            'spatial_shape': spatial_shape
+        }
     def parse_kitti_labels(self, label_path):
         # open up the file and grab all the lines inside
         with open(label_path, 'r') as f:
