@@ -6,23 +6,21 @@ from utils.pillarization import Pillarization
 
 
 class KittiDataset(Dataset):
-    def __init__(self, data_dir, split='train', transform=None):
-        """
-        data_dir: path where the KITTI stuff lives like /data/kitti/
-        split: picking train val or test
-        """
+    def __init__(self, data_dir, split='train', transform=None, max_samples=None):
         self.data_dir = data_dir
         self.split = split
         self.transform = transform
         self.pillarizer = Pillarization()
-        
-        # setting up where to find the LiDAR scans and labels
+
         self.lidar_dir = os.path.join(data_dir, split, 'velodyne')
         self.label_dir = os.path.join(data_dir, split, 'label_2')
-        
-        # fetching all the .bin files hanging out in the folder
+
         self.file_list = [f.split('.')[0] for f in os.listdir(self.lidar_dir) if f.endswith('.bin')]
         self.file_list.sort()
+
+        # cap the dataset size for quick runs and demos
+        if max_samples is not None:
+            self.file_list = self.file_list[:max_samples]
 
     def __len__(self):
         return len(self.file_list)

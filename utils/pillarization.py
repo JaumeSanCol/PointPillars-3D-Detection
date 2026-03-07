@@ -53,12 +53,11 @@ class Pillarization:
             pillar_dict[key].append(i)
 
         # build the output arrays
-        num_pillars = min(len(pillar_dict), self.max_pillars)
         pillars = np.zeros(
-            (num_pillars, self.max_points_per_pillar, 9), dtype=np.float32
+            (self.max_pillars, self.max_points_per_pillar, 9), dtype=np.float32
         )
-        pillar_indices = np.zeros((num_pillars, 2), dtype=np.int32)
-
+        pillar_indices = np.zeros((self.max_pillars, 2), dtype=np.int32)
+        
         for pillar_idx, ((gx, gy), point_indices) in enumerate(pillar_dict.items()):
             if pillar_idx >= self.max_pillars:
                 break
