@@ -1,6 +1,8 @@
 import torch
 from torch.utils.data import DataLoader
 import numpy as np
+import json
+import os
 from models.pointpillars import PointPillars
 from utils.kitti_dataset import KittiDataset
 from utils.loss import PointPillarsLoss
@@ -18,10 +20,14 @@ def collate_fn(batch):
     return pillars, pillar_indices, spatial_shape, labels
 
 def train(data_dir, num_epochs=10, batch_size=4, learning_rate=1e-3):
+    loss_history = {
+        'total': [], 'cls': [], 'box': [], 'dir': []
+    }
+
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print(f"training on {device}")
 
-    dataset = KittiDataset(data_dir=data_dir, split='train', max_samples=200)
+    dataset = KittiDataset(data_dir=data_dir, split='train', max_samples=750)
     dataloader = DataLoader(
         dataset,
         batch_size=batch_size,
@@ -66,10 +72,25 @@ def train(data_dir, num_epochs=10, batch_size=4, learning_rate=1e-3):
                     f"box {box_loss.item():.4f} "
                     f"dir {dir_loss.item():.4f}"
                 )
+                loss_history['total'].append(loss.item())
+                loss_history['cls'].append(cls_loss.item())
+                loss_history['box'].append(box_loss.item())
+                loss_history['dir'].append(dir_loss.item())
 
         avg_loss = total_loss / len(dataloader)
         print(f"epoch {epoch + 1}/{num_epochs} avg loss {avg_loss:.4f}")
 
+        os.makedirs('assets', exist_ok=True)
+        with open('assets/loss_history.json', 'w') as f:
+            json.dump(loss_history, f)
+        print("loss history saved to assets/loss_history.json")
+        
+        os.makedirs('checkpoints', exist_ok=True)
+        torch.save(
+            model.state_dict(),
+            f'checkpoints/model_epoch_{epoch + 1}.pth'
+        )
+        print(f"checkpoint saved for epoch {epoch + 1}")
 
 if __name__ == '__main__':
     train(data_dir='data/kitti')
